@@ -188,17 +188,17 @@ object PdfGenerator {
 
         // Design colors
         val primaryPaint = Paint().apply {
-            color = Color.parseColor("#FF6B35") // Saffron primary
+            color = Color.parseColor("#0F2F3A") // TealDark primary brand
             style = Paint.Style.FILL
         }
         val secondaryPaint = Paint().apply {
-            color = Color.parseColor("#2E7D32") // Deep Green
+            color = Color.parseColor("#1F8F4E") // Green
             style = Paint.Style.FILL
             textSize = 28f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val textPaint = Paint().apply {
-            color = Color.parseColor("#2E2620") // Dark charcoal text
+            color = Color.parseColor("#1A2E38") // TextPrimary
             textSize = 14f
             isAntiAlias = true
         }
@@ -209,7 +209,7 @@ object PdfGenerator {
             isAntiAlias = true
         }
         val borderPaint = Paint().apply {
-            color = Color.parseColor("#EFE8E2")
+            color = Color.parseColor("#E2EAED") // Border
             style = Paint.Style.STROKE
             strokeWidth = 2f
         }
@@ -272,7 +272,7 @@ object PdfGenerator {
 
         // AMOUNT DISPLAY CARD (Big & bold)
         val amtPaint = Paint().apply {
-            color = Color.parseColor("#E8F5E9") // Light festive green background
+            color = Color.parseColor("#D4EDDA") // Light green badge background tint Color(0xFFD4EDDA)
             style = Paint.Style.FILL
         }
         canvas.drawRect(50f, 395f, 350f, 455f, amtPaint)
@@ -320,11 +320,11 @@ object PdfGenerator {
 
         // Design colors
         val headerPaint = Paint().apply {
-            color = Color.parseColor("#E65100") // Deep Orange
+            color = Color.parseColor("#0F2F3A") // TealDark primary brand
             style = Paint.Style.FILL
         }
         val textPaint = Paint().apply {
-            color = Color.BLACK
+            color = Color.parseColor("#1A2E38") // TextPrimary
             textSize = 11f
             isAntiAlias = true
         }
@@ -377,8 +377,8 @@ object PdfGenerator {
         yPos += 20f
 
         canvas.drawText("Net Remaining Surplus Balance:", 40f, yPos, textPaint)
-        canvas.drawText(CurrencyFormatter.format(netBalance), 280f, yPos, boldPaint.apply { color = Color.parseColor("#2E7D32") })
-        boldPaint.color = Color.BLACK // Restore
+        canvas.drawText(CurrencyFormatter.format(netBalance), 280f, yPos, boldPaint.apply { color = Color.parseColor("#1F8F4E") })
+        boldPaint.color = Color.parseColor("#1A2E38") // Restore black-ish TextPrimary
         yPos += 20f
 
         canvas.drawText("Total Registered Contributors Count:", 40f, yPos, textPaint)

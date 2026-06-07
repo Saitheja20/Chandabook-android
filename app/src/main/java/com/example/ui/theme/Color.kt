@@ -2,23 +2,16 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Brand palette representing Indian festivals & trust-based ledger
-val PrimarySaffron = Color(0xFFFF6B35)       // Deep elegant Saffron
-val SecondaryGreen = Color(0xFF2E7D32)      // Deep trust Green
-val AccentGold = Color(0xFFFFD54F)          // Diya flame / highlights
-val DarkSaffron = Color(0xFFBF5028)         // Saturated dark saffron for header container overlay (e.g. #BF5028)
-
-// Backgrounds and Surfaces
-val BackgroundCream = Color(0xFFFFFDE7)     // Festive warm bold yellow/cream background
-val SurfaceWhite = Color(0xFFFFFFFF)        // Cards and surfaces
-val LightSaffron = Color(0xFFFFEFE8)        // Extremely subtle background tint
-val LightGreen = Color(0xFFE8F5E9)          // Extremely subtle background tint for achievements
-
-// Text colors
-val TextDark = Color(0xFF1A1A1A)            // Warm black text color (#1A1A1A)
-val TextMuted = Color(0xFF6B7280)           // Neutral gray for secondary details
-val BorderLight = Color(0xFFFFE0B2)         // Soft warm orange border (Tailwind's border-orange-100)
-
-// General status
-val ErrorRed = Color(0xFFD32F2F)
-val ErrorContainer = Color(0xFFFCE8E6)
+val TealDark        = Color(0xFF0F2F3A)   // --teal-dark    (primary brand)
+val TealMid         = Color(0xFF163D4D)   // --teal-mid     (top bar, nav)
+val TealLight       = Color(0xFF1E5368)   // --teal-light   (hover, ripple)
+val Gold            = Color(0xFFF4C542)   // --gold         (CTA buttons, FAB)
+val GoldDark        = Color(0xFFD4A520)   // --gold-dark    (pressed button)
+val Green           = Color(0xFF1F8F4E)   // --green        (donations, income)
+val GreenDark       = Color(0xFF166B3A)   // --green-dark   (donation pressed)
+val Orange          = Color(0xFFFF8C1A)   // --orange       (expenses, alerts)
+val White           = Color(0xFFFFFFFF)   // --white
+val Bg              = Color(0xFFF8FAFB)   // --bg           (screen background)
+val TextPrimary     = Color(0xFF1A2E38)   // --text         (all body text)
+val TextMuted       = Color(0xFF5A7685)   // --text-muted   (labels, hints)
+val Border          = Color(0xFFE2EAED)   // --border       (card borders)

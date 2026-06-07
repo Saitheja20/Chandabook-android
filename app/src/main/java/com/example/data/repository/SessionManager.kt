@@ -19,6 +19,8 @@ import java.security.KeyStore
  */
 class SessionManager(context: Context) {
 
+    var onSessionExpired: (() -> Unit)? = null
+
     private val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
     private val userAdapter = moshi.adapter(User::class.java)
@@ -131,6 +133,17 @@ class SessionManager(context: Context) {
         set(value) {
             prefs.edit().putString(KEY_CURRENT_ORG_ID, value).apply()
         }
+
+    fun saveRawUserCredentials(token: String, user: User) {
+        prefs.edit().apply {
+            putString("auth_token", token)
+            putString("user_id", user.id)
+            putString("user_name", user.displayName ?: user.name ?: "")
+            putString("user_email", user.email ?: "")
+            putString("user_role", user.role ?: "viewer")
+            apply()
+        }
+    }
 
     fun clear() {
         prefs.edit().clear().apply()

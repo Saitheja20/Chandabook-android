@@ -41,6 +41,20 @@ class ChandaBookViewModel(
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage = _successMessage.asStateFlow()
 
+    // --- FCM NAVIGATION TARGET ---
+    private val _fcmTargetRoute = MutableStateFlow<String?>(null)
+    val fcmTargetRoute = _fcmTargetRoute.asStateFlow()
+
+    fun setFCMNavigationRoute(route: String?) {
+        if (!route.isNullOrEmpty()) {
+            _fcmTargetRoute.value = route
+        }
+    }
+
+    fun clearFCMNavigationRoute() {
+        _fcmTargetRoute.value = null
+    }
+
     // --- AUTHENTICATION STATE ---
     private val _currentUser = MutableStateFlow<User?>(authRepo.getLocalUser())
     val currentUser = _currentUser.asStateFlow()
@@ -51,6 +65,7 @@ class ChandaBookViewModel(
     val otpTimer = MutableStateFlow(0) // 60s countdown
     val otpSent = MutableStateFlow(false)
     val authTarget = MutableStateFlow("") // email or phone number being validated
+    var preferRegisterScreen: Boolean = false
 
     private val _activeSessions = MutableStateFlow<List<SessionInfo>>(emptyList())
     val activeSessions = _activeSessions.asStateFlow()
@@ -152,8 +167,116 @@ class ChandaBookViewModel(
     val selectedDonation = MutableStateFlow<Donation?>(null)
     val generatedReceiptFile = MutableStateFlow<File?>(null)
 
+    // --- GUEST VIEW CORES (READ ONLY) ---
+    val guestOrgCode = MutableStateFlow("")
+    val guestOrg = MutableStateFlow<PublicOrg?>(null)
+    val guestSummary = MutableStateFlow<PublicSummary?>(null)
+    val guestDonations = MutableStateFlow<List<PublicDonation>>(emptyList())
+    val guestExpenses = MutableStateFlow<List<PublicExpense>>(emptyList())
+
+    // Guest List local filters
+    val guestDonationSearchQuery = MutableStateFlow("")
+    val guestDonationFilterCategory = MutableStateFlow("All")
+    val guestDonationFilterPayment = MutableStateFlow("All")
+
+    val guestExpenseSearchQuery = MutableStateFlow("")
+    val guestExpenseFilterCategory = MutableStateFlow("All")
+    val guestExpenseFilterPayment = MutableStateFlow("All")
+
+    // Reactive filtering streams for Guest donations
+    val filteredGuestDonations: StateFlow<List<PublicDonation>> = combine(
+        guestDonations,
+        guestDonationSearchQuery,
+        guestDonationFilterCategory,
+        guestDonationFilterPayment
+    ) { list, query, category, payment ->
+        list.filter { item ->
+            val matchesSearch = query.isEmpty() ||
+                    item.donorName.contains(query, ignoreCase = true) ||
+                    item.receiptNumber.contains(query, ignoreCase = true)
+            
+            val matchesCategory = category == "All" || item.category.lowercase() == category.lowercase()
+            val matchesPayment = payment == "All" || item.paymentMethod.lowercase() == payment.lowercase()
+            
+            matchesSearch && matchesCategory && matchesPayment
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Reactive filtering streams for Guest expenses
+    val filteredGuestExpenses: StateFlow<List<PublicExpense>> = combine(
+        guestExpenses,
+        guestExpenseSearchQuery,
+        guestExpenseFilterCategory,
+        guestExpenseFilterPayment
+    ) { list, query, category, payment ->
+        list.filter { item ->
+            val matchesSearch = query.isEmpty() || item.title.contains(query, ignoreCase = true)
+            val matchesCategory = category == "All" || item.category.lowercase() == category.lowercase()
+            val matchesPayment = payment == "All" || item.paymentMethod.lowercase() == payment.lowercase()
+            
+            matchesSearch && matchesCategory && matchesPayment
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun viewAsGuest(orgCode: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            
+            orgRepo.getPublicOrg(orgCode).onSuccess { org ->
+                guestOrg.value = org
+                guestOrgCode.value = orgCode
+                
+                // Fetch summary
+                orgRepo.getPublicSummary(orgCode).onSuccess { sum ->
+                    guestSummary.value = sum
+                }.onFailure {
+                    // Precompute fallback if sum is not served
+                    val totCollections = guestDonations.value.sumOf { it.amount }
+                    val totExp = guestExpenses.value.sumOf { it.amount }
+                    guestSummary.value = PublicSummary(
+                        totalDonations = guestDonations.value.size,
+                        totalAmount = totCollections,
+                        totalExpenses = guestExpenses.value.size,
+                        totalExpenseAmount = totExp,
+                        netBalance = totCollections - totExp
+                    )
+                }
+                
+                // Fetch donations
+                orgRepo.getPublicDonations(orgCode).onSuccess { dons ->
+                    guestDonations.value = dons
+                }
+                
+                // Fetch expenses
+                orgRepo.getPublicExpenses(orgCode).onSuccess { exps ->
+                    guestExpenses.value = exps
+                }
+
+                _isLoading.value = false
+                onSuccess()
+            }.onFailure { error ->
+                _isLoading.value = false
+                val errorMsg = error.message ?: ""
+                val is404 = errorMsg.contains("404") || (error is retrofit2.HttpException && error.code() == 404)
+                if (is404) {
+                    showError("Organization not found. Check the code and try again.")
+                } else {
+                    showError("Something went wrong. Please try again.")
+                }
+            }
+        }
+    }
+
     // --- INITIALIZATION ---
     init {
+        authRepo.registerSessionExpiredCallback {
+            viewModelScope.launch {
+                logoutUser { }
+                showError("Session expired. Please log in again.")
+            }
+        }
+
         // Collect local Room cached lists automatically whenever active orgId changes
         viewModelScope.launch {
             activeOrgId.collect { orgId ->

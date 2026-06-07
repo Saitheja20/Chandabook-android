@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 interface AppContainer {
@@ -62,14 +63,56 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                     requestBuilder.header("Authorization", "Bearer $jwtToken")
                 }
                 
-                chain.proceed(requestBuilder.build())
+                val request = requestBuilder.build()
+                var response: okhttp3.Response? = null
+                var primaryException: Exception? = null
+                
+                try {
+                    response = chain.proceed(request)
+                } catch (e: Exception) {
+                    primaryException = e
+                }
+                
+                // Check if primary call succeeded and we got a 401
+                if (response != null) {
+                    if (response.code == 401) {
+                        sessionManager.clear()
+                        sessionManager.onSessionExpired?.invoke()
+                    }
+                    response
+                } else {
+                    // Try the direct IP fallback URL as secondary
+                    val host = request.url.host
+                    if (host == "chandabook.com") {
+                        val fallbackUrl = request.url.newBuilder()
+                            .scheme("http")
+                            .host("129.159.23.12")
+                            .port(3000)
+                            .build()
+                        val fallbackRequest = request.newBuilder()
+                            .url(fallbackUrl)
+                            .build()
+                        try {
+                            val fallbackResponse = chain.proceed(fallbackRequest)
+                            if (fallbackResponse.code == 401) {
+                                sessionManager.clear()
+                                sessionManager.onSessionExpired?.invoke()
+                            }
+                            fallbackResponse
+                        } catch (fallbackEx: Exception) {
+                            throw primaryException ?: fallbackEx
+                        }
+                    } else {
+                        throw primaryException ?: IOException("Request failed without response")
+                    }
+                }
             }
             .build()
     }
 
     private val apiService: ChandaBookApiService by lazy {
         Retrofit.Builder()
-            .baseUrl("https://api.chandabook.com/api/")
+            .baseUrl("https://chandabook.com/api/")
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()

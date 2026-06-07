@@ -6,13 +6,15 @@ import androidx.room.PrimaryKey
 // Authentication schemas
 data class User(
     val id: String,
-    val name: String,
+    val displayName: String? = null,
+    val name: String? = "",
     val email: String?,
-    val phone: String?,
-    val auth_method: String,
-    val avatar_url: String?,
-    val created_at: String?,
-    val last_login_at: String?,
+    val phone: String? = null,
+    val role: String? = "viewer",
+    val auth_method: String? = "google",
+    val avatar_url: String? = null,
+    val created_at: String? = null,
+    val last_login_at: String? = null,
     val organizations: List<UserOrganization> = emptyList()
 )
 
@@ -103,4 +105,40 @@ data class PaymentDetail(
     val paymentMethod: String,
     val count: Int,
     val total: Double
+)
+
+data class PublicOrg(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val orgCode: String?,
+    val createdByName: String?,
+    val createdAt: String
+)
+
+data class PublicSummary(
+    val totalDonations: Int,
+    val totalAmount: Double,
+    val totalExpenses: Int,
+    val totalExpenseAmount: Double,
+    val netBalance: Double
+)
+
+data class PublicDonation(
+    val donorName: String,
+    val amount: Double,
+    val category: String,
+    val paymentMethod: String,
+    val receiptNumber: String,
+    val receivedByName: String,
+    val createdAt: String
+)
+
+data class PublicExpense(
+    val title: String,
+    val amount: Double,
+    val category: String,
+    val paymentMethod: String,
+    val addedByName: String,
+    val createdAt: String
 )

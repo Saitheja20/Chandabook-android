@@ -3,8 +3,7 @@ package com.example.data.repository
 import com.example.data.api.ChandaBookApiService
 import com.example.data.api.CreateOrgRequest
 import com.example.data.local.OrganizationDao
-import com.example.data.model.Member
-import com.example.data.model.Organization
+import com.example.data.model.*
 import kotlinx.coroutines.flow.Flow
 import java.io.IOException
 
@@ -83,6 +82,42 @@ class OrgRepository(
             val updated = api.updateOrganization(orgId, CreateOrgRequest(name, description))
             dao.insertOrganization(updated)
             Result.success(updated)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPublicOrg(orgCode: String): Result<PublicOrg> {
+        return try {
+            val publicOrg = api.getPublicOrg(orgCode)
+            Result.success(publicOrg)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPublicSummary(orgCode: String): Result<PublicSummary> {
+        return try {
+            val summary = api.getPublicSummary(orgCode)
+            Result.success(summary)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPublicDonations(orgCode: String): Result<List<PublicDonation>> {
+        return try {
+            val donations = api.getPublicDonations(orgCode)
+            Result.success(donations)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPublicExpenses(orgCode: String): Result<List<PublicExpense>> {
+        return try {
+            val expenses = api.getPublicExpenses(orgCode)
+            Result.success(expenses)
         } catch (e: Exception) {
             Result.failure(e)
         }

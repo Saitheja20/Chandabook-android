@@ -131,4 +131,17 @@ interface ChandaBookApiService {
 
     @PUT("users/{id}")
     suspend fun updateUserProfile(@Path("id") id: String, @Body body: User): User
+
+    // --- PUBLIC OUTSIDE ACCESS (GUEST READ ONLY) ---
+    @GET("organizations/public/{orgCode}")
+    suspend fun getPublicOrg(@Path("orgCode") orgCode: String): com.example.data.model.PublicOrg
+
+    @GET("organizations/public/{orgCode}/summary")
+    suspend fun getPublicSummary(@Path("orgCode") orgCode: String): com.example.data.model.PublicSummary
+
+    @GET("organizations/public/{orgCode}/donations")
+    suspend fun getPublicDonations(@Path("orgCode") orgCode: String): List<com.example.data.model.PublicDonation>
+
+    @GET("organizations/public/{orgCode}/expenses")
+    suspend fun getPublicExpenses(@Path("orgCode") orgCode: String): List<com.example.data.model.PublicExpense>
 }

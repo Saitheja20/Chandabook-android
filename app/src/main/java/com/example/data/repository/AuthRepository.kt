@@ -9,11 +9,21 @@ class AuthRepository(
     private val sessionManager: SessionManager
 ) {
 
+    fun registerSessionExpiredCallback(callback: () -> Unit) {
+        sessionManager.onSessionExpired = callback
+    }
+
     suspend fun getProfile(): Result<User> {
         return try {
             val user = api.getCurrentUser()
-            sessionManager.user = user
-            Result.success(user)
+            val processedUser = if (user.name.isNullOrEmpty() && !user.displayName.isNullOrEmpty()) {
+                user.copy(name = user.displayName)
+            } else {
+                user
+            }
+            sessionManager.user = processedUser
+            sessionManager.saveRawUserCredentials(sessionManager.token ?: "", processedUser)
+            Result.success(processedUser)
         } catch (e: Exception) {
             // If offline, return cached user
             sessionManager.user?.let {
@@ -109,13 +119,19 @@ class AuthRepository(
         val token = response.token
         val user = response.user
         return if (token != null && user != null) {
-            sessionManager.token = token
-            sessionManager.user = user
-            // Set default active organization if available in user object
-            if (sessionManager.currentOrganizationId == null && user.organizations.isNotEmpty()) {
-                sessionManager.currentOrganizationId = user.organizations.first().org_id
+            val processedUser = if (user.name.isNullOrEmpty() && !user.displayName.isNullOrEmpty()) {
+                user.copy(name = user.displayName)
+            } else {
+                user
             }
-            Result.success(user)
+            sessionManager.token = token
+            sessionManager.user = processedUser
+            // Set default active organization if available in user object
+            if (sessionManager.currentOrganizationId == null && processedUser.organizations.isNotEmpty()) {
+                sessionManager.currentOrganizationId = processedUser.organizations.first().org_id
+            }
+            sessionManager.saveRawUserCredentials(token, processedUser)
+            Result.success(processedUser)
         } else {
             Result.failure(Exception(response.message ?: "Invalid authentication payload standard response"))
         }
