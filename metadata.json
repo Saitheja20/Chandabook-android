@@ -1,0 +1,6 @@
+{
+  "name": "ChandaBook",
+  "description": "A digital festival donation ledger app for Indian community committees to track chanda, expenses, and generate receipts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
