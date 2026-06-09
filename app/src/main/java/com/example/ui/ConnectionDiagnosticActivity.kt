@@ -358,7 +358,7 @@ class DiagnosticViewModel : ViewModel() {
             withContext(Dispatchers.IO) {
                 try {
                     val jsonMediaType = "application/json; charset=utf-8".toMediaType()
-                    val payload = """{"idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjIifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJzdWIiOiIxMjM0NTY3OTAxIn0.dummy_signature_for_format_validation"}"""
+                    val payload = """{"idToken": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl"}"""
                     val request = Request.Builder()
                         .url("https://api.chandabook.com/api/auth/google")
                         .post(payload.toRequestBody(jsonMediaType))

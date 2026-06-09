@@ -82,13 +82,21 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                 if (response != null) {
                     android.util.Log.d("AppContainer", "OkHttp Response: Code=${response.code} for URL=${request.url}")
                     if (response.code == 401) {
-                        android.util.Log.w("AppContainer", "OkHttp Response 401: Unauthorized response detected!")
-                        if (!jwtToken.isNullOrEmpty()) {
-                            android.util.Log.e("AppContainer", "OkHttp 401: Active JWT token rejected by backend. Clearing session & triggering expiry handler.")
+                        val tokenInStorage = sessionManager.token ?: ""
+                        val sentToken = request.header("Authorization")
+                            ?.removePrefix("Bearer ")?.trim() ?: ""
+                        val isAuthRequest = request.url.encodedPath.contains("/api/auth/")
+                        val isRealToken = sentToken.startsWith("ey")
+                        val isApiRequest = request.url.encodedPath.contains("/api/")
+
+                        android.util.Log.w("AppContainer", "OkHttp Response 401: Unauthorized response! sentTokenLength=${sentToken.length}, isRealToken=$isRealToken, isAuthRequest=$isAuthRequest, isApiRequest=$isApiRequest")
+
+                        if (isRealToken && isApiRequest && !isAuthRequest && sentToken == tokenInStorage) {
+                            android.util.Log.e("AppContainer", "OkHttp 401: Real active JWT token rejected by backend on API endpoint. Clearing session & triggering expiry.")
                             sessionManager.clear()
                             sessionManager.onSessionExpired?.invoke()
                         } else {
-                            android.util.Log.d("AppContainer", "OkHttp 401: Received 401 but no JWT was supplied anyway. Skipping session clearance behavior.")
+                            android.util.Log.d("AppContainer", "OkHttp 401: Not clearing session because conditions were not met (token match=${sentToken == tokenInStorage})")
                         }
                     }
                     response
@@ -115,14 +123,22 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                         val fallbackRequest = request.newBuilder()
                             .url(fallbackUrl)
                             .build()
-                        android.util.Log.w("AppContainer", "OkHttp Fallback: Primary failed. Retrying with fallback IP: $fallbackUrl (retaining attached Auth headers)")
+                        android.util.Log.w("AppContainer", "OkHttp Fallback: Primary failed. Retrying with fallback IP: $fallbackUrl")
                         try {
                             val fallbackResponse = chain.proceed(fallbackRequest)
                             android.util.Log.d("AppContainer", "OkHttp Fallback Response: Code=${fallbackResponse.code}")
                             if (fallbackResponse.code == 401) {
-                                android.util.Log.w("AppContainer", "OkHttp Fallback Response 401: Unauthorized response detected!")
-                                if (!jwtToken.isNullOrEmpty()) {
-                                    android.util.Log.e("AppContainer", "OkHttp Fallback 401: Active JWT token rejected by fallback. Clearing session.")
+                                val tokenInStorage = sessionManager.token ?: ""
+                                val sentToken = fallbackRequest.header("Authorization")
+                                    ?.removePrefix("Bearer ")?.trim() ?: ""
+                                val isAuthRequest = fallbackRequest.url.encodedPath.contains("/api/auth/")
+                                val isRealToken = sentToken.startsWith("ey")
+                                val isApiRequest = fallbackRequest.url.encodedPath.contains("/api/")
+
+                                android.util.Log.w("AppContainer", "OkHttp Fallback Response 401: Unauthorized! sentTokenLength=${sentToken.length}, isRealToken=$isRealToken, isAuthRequest=$isAuthRequest, isApiRequest=$isApiRequest")
+
+                                if (isRealToken && isApiRequest && !isAuthRequest && sentToken == tokenInStorage) {
+                                    android.util.Log.e("AppContainer", "OkHttp Fallback 401: Real active JWT token rejected by fallback. Clearing session.")
                                     sessionManager.clear()
                                     sessionManager.onSessionExpired?.invoke()
                                 }

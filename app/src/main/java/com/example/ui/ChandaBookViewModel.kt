@@ -272,8 +272,12 @@ class ChandaBookViewModel(
     init {
         authRepo.registerSessionExpiredCallback {
             viewModelScope.launch {
-                logoutUser { }
-                showError("Session expired. Please log in again.")
+                // Only show "Session expired" if user
+                // WAS actively using the app, not on startup
+                if (_isLoggedIn.value) {
+                    logoutUser { }
+                    showError("Session expired. Please log in again.")
+                }
             }
         }
 
@@ -307,9 +311,20 @@ class ChandaBookViewModel(
             }
         }
 
-        // Auto load user context
+        // DO NOT call refreshUserData() here
+        // Just load cached local data silently
         if (isLoggedIn.value) {
-            refreshUserData()
+            loadLocalDataOnly()
+        }
+    }
+
+    private fun loadLocalDataOnly() {
+        viewModelScope.launch {
+            // Load from Room DB only, no API calls
+            val localUser = authRepo.getLocalUser()
+            _currentUser.value = localUser
+            // Load orgs from local Room DB
+            // This is already happening via orgRepo.organizationsFlow
         }
     }
 
@@ -434,6 +449,10 @@ class ChandaBookViewModel(
             authRepo.loginWithGoogle(idToken).onSuccess {
                 _currentUser.value = it
                 _isLoggedIn.value = true
+                viewModelScope.launch {
+                    delay(500) // small delay to let navigation happen
+                    refreshUserData() // NOW it's safe, user just logged in
+                }
                 onSuccess()
             }.onFailure {
                 showError("Google verification failed. Use OTP fallback: ${it.localizedMessage}")
@@ -480,7 +499,10 @@ class ChandaBookViewModel(
                 _currentUser.value = it
                 _isLoggedIn.value = true
                 otpSent.value = false
-                refreshUserData()
+                viewModelScope.launch {
+                    delay(500) // small delay to let navigation happen
+                    refreshUserData() // NOW it's safe, user just logged in
+                }
                 onSuccess()
             }.onFailure {
                 showError("Invalid OTP. Try again.")
@@ -527,7 +549,10 @@ class ChandaBookViewModel(
                 _currentUser.value = it
                 _isLoggedIn.value = true
                 otpSent.value = false
-                refreshUserData()
+                viewModelScope.launch {
+                    delay(500) // small delay to let navigation happen
+                    refreshUserData() // NOW it's safe, user just logged in
+                }
                 onSuccess()
             }.onFailure {
                 showError("Invalid OTP. Please check code.")
