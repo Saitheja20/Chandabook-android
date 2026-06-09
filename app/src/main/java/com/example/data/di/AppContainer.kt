@@ -112,7 +112,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
 
     private val apiService: ChandaBookApiService by lazy {
         Retrofit.Builder()
-            .baseUrl("https://chandabook.com/api/")
+            .baseUrl("http://129.159.23.12:3000/")
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
