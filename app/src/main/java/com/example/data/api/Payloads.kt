@@ -52,22 +52,38 @@ data class LoginWhatsappVerifyRequest(
 
 // Auth Responses
 data class AuthResponse(
-    val token: String?,
-    val user: User?,
-    val success: Boolean? = true,
-    val message: String? = null
+    val token: String? = null,
+    val user: User? = null,
+    val success: Boolean = true,
+    val message: String? = null,
+    val error: String? = null
 )
 
 data class SuccessResponse(
-    val success: Boolean,
-    val message: String?
+    val success: Boolean = true,
+    val message: String? = null,
+    val error: String? = null
+)
+
+data class LoginResponse(
+    val success: Boolean = true,
+    val message: String? = null,
+    val token: String? = null,
+    val user: User? = null,
+    val error: String? = null
+)
+
+data class OtpRequestResponse(
+    val success: Boolean = true,
+    val message: String? = null,
+    val error: String? = null
 )
 
 data class SessionInfo(
-    val id: String,
-    val user_agent: String?,
-    val ip_address: String?,
-    val last_active_at: String?,
+    val id: String = "",
+    val user_agent: String? = null,
+    val ip_address: String? = null,
+    val last_active_at: String? = null,
     val is_current: Boolean? = false
 )
 

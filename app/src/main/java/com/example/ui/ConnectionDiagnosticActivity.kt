@@ -89,7 +89,7 @@ class DiagnosticViewModel : ViewModel() {
     fun initializeTestList() {
         val initialList = listOf(
             TestResult(1, "Internet Connectivity", TestStatus.PENDING),
-            TestResult(2, "HTTPS Domain Reachable (chandabook.com)", TestStatus.PENDING),
+            TestResult(2, "HTTPS Domain Reachable (api.chandabook.com)", TestStatus.PENDING),
             TestResult(3, "HTTP Direct IP Reachable (129.159.23.12)", TestStatus.PENDING),
             TestResult(4, "API Base Endpoint (HTTPS)", TestStatus.PENDING),
             TestResult(5, "API Base Endpoint (Direct IP)", TestStatus.PENDING),
@@ -99,7 +99,7 @@ class DiagnosticViewModel : ViewModel() {
             TestResult(9, "Public Org Lookup", TestStatus.PENDING),
             TestResult(10, "Organizations (Auth Required)", TestStatus.PENDING),
             TestResult(11, "Donations Endpoint Exists", TestStatus.PENDING),
-            TestResult(12, "SSL Certificate Check (chandabook.com)", TestStatus.PENDING)
+            TestResult(12, "SSL Certificate Check (api.chandabook.com)", TestStatus.PENDING)
         )
         _results.value = initialList
     }
@@ -207,7 +207,7 @@ class DiagnosticViewModel : ViewModel() {
 
             withContext(Dispatchers.IO) {
                 try {
-                    val request = Request.Builder().url("https://chandabook.com/").get().build()
+                    val request = Request.Builder().url("https://api.chandabook.com/").get().build()
                     okHttpClient.newCall(request).execute().use { response ->
                         code = response.code
                         bodyText = response.body?.string()?.take(300)
@@ -219,7 +219,7 @@ class DiagnosticViewModel : ViewModel() {
             }
 
             val elapsed = System.currentTimeMillis() - startTime
-            TestResult(2, "HTTPS Domain Reachable (chandabook.com)", status, code, elapsed, bodyText, err)
+            TestResult(2, "HTTPS Domain Reachable (api.chandabook.com)", status, code, elapsed, bodyText, err)
         }
     }
 
@@ -259,7 +259,7 @@ class DiagnosticViewModel : ViewModel() {
 
             withContext(Dispatchers.IO) {
                 try {
-                    val request = Request.Builder().url("https://chandabook.com/api/").get().build()
+                    val request = Request.Builder().url("https://api.chandabook.com/api/").get().build()
                     okHttpClient.newCall(request).execute().use { response ->
                         code = response.code
                         bodyText = response.body?.string()?.take(300)
@@ -325,7 +325,7 @@ class DiagnosticViewModel : ViewModel() {
                         }
                     """.trimIndent()
                     val request = Request.Builder()
-                        .url("https://chandabook.com/api/auth/register/email")
+                        .url("https://api.chandabook.com/api/auth/register/email")
                         .post(payload.toRequestBody(jsonMediaType))
                         .build()
                     okHttpClient.newCall(request).execute().use { response ->
@@ -360,7 +360,7 @@ class DiagnosticViewModel : ViewModel() {
                     val jsonMediaType = "application/json; charset=utf-8".toMediaType()
                     val payload = """{"idToken": "diagnostic_test_token"}"""
                     val request = Request.Builder()
-                        .url("https://chandabook.com/api/auth/google")
+                        .url("https://api.chandabook.com/api/auth/google")
                         .post(payload.toRequestBody(jsonMediaType))
                         .build()
                     okHttpClient.newCall(request).execute().use { response ->
@@ -393,7 +393,7 @@ class DiagnosticViewModel : ViewModel() {
                     val jsonMediaType = "application/json; charset=utf-8".toMediaType()
                     val payload = """{"email": "test@diagnostic.com"}"""
                     val request = Request.Builder()
-                        .url("https://chandabook.com/api/auth/login/email")
+                        .url("https://api.chandabook.com/api/auth/login/email")
                         .post(payload.toRequestBody(jsonMediaType))
                         .build()
                     okHttpClient.newCall(request).execute().use { response ->
@@ -424,7 +424,7 @@ class DiagnosticViewModel : ViewModel() {
             withContext(Dispatchers.IO) {
                 try {
                     val request = Request.Builder()
-                        .url("https://chandabook.com/api/organizations/public/C6UIMS")
+                        .url("https://api.chandabook.com/api/organizations/public/C6UIMS")
                         .get()
                         .build()
                     okHttpClient.newCall(request).execute().use { response ->
@@ -455,7 +455,7 @@ class DiagnosticViewModel : ViewModel() {
             withContext(Dispatchers.IO) {
                 try {
                     val request = Request.Builder()
-                        .url("https://chandabook.com/api/organizations")
+                        .url("https://api.chandabook.com/api/organizations")
                         .header("Authorization", "Bearer diagnostic_test")
                         .get()
                         .build()
@@ -487,7 +487,7 @@ class DiagnosticViewModel : ViewModel() {
             withContext(Dispatchers.IO) {
                 try {
                     val request = Request.Builder()
-                        .url("https://chandabook.com/api/donations")
+                        .url("https://api.chandabook.com/api/donations")
                         .header("Authorization", "Bearer diagnostic_test")
                         .get()
                         .build()
@@ -518,7 +518,7 @@ class DiagnosticViewModel : ViewModel() {
 
             withContext(Dispatchers.IO) {
                 try {
-                    val url = java.net.URL("https://chandabook.com")
+                    val url = java.net.URL("https://api.chandabook.com")
                     val conn = url.openConnection() as javax.net.ssl.HttpsURLConnection
                     conn.connectTimeout = 5000
                     conn.readTimeout = 5000
@@ -546,7 +546,7 @@ class DiagnosticViewModel : ViewModel() {
 
             TestResult(
                 testNumber = 12,
-                testName = "SSL Certificate Check (chandabook.com)",
+                testName = "SSL Certificate Check (api.chandabook.com)",
                 status = status,
                 responseTimeMs = elapsed,
                 responseBody = body,

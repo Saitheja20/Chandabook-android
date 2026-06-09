@@ -81,9 +81,20 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                     }
                     response
                 } else {
-                    // Try the direct IP fallback URL as secondary
+                    // Try the direct IP fallback URL as secondary if primary had an SSL or timeout exception
                     val host = request.url.host
-                    if (host == "chandabook.com") {
+                    val isSslOrTimeout = primaryException != null && (
+                        primaryException is javax.net.ssl.SSLException ||
+                        primaryException is java.net.SocketTimeoutException ||
+                        primaryException is java.net.ConnectException ||
+                        primaryException is java.net.UnknownHostException ||
+                        primaryException is java.io.IOException ||
+                        primaryException.message?.contains("ssl", ignoreCase = true) == true ||
+                        primaryException.message?.contains("timeout", ignoreCase = true) == true ||
+                        primaryException.message?.contains("time out", ignoreCase = true) == true
+                    )
+
+                    if (host == "api.chandabook.com" && isSslOrTimeout) {
                         val fallbackUrl = request.url.newBuilder()
                             .scheme("http")
                             .host("129.159.23.12")
@@ -112,7 +123,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
 
     private val apiService: ChandaBookApiService by lazy {
         Retrofit.Builder()
-            .baseUrl("http://129.159.23.12:3000/")
+            .baseUrl("https://api.chandabook.com/api/")
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()

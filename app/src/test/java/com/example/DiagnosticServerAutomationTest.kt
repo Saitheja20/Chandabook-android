@@ -11,15 +11,15 @@ import java.util.concurrent.TimeUnit
 class DiagnosticServerAutomationTest {
 
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(4, TimeUnit.SECONDS)
+        .readTimeout(4, TimeUnit.SECONDS)
+        .writeTimeout(4, TimeUnit.SECONDS)
         .build()
 
     @Test
     fun executeAllServerDiagnosticTests() {
         println("\n==================================================")
-        println("      STARTING AUTOMATED SERVER DIAGNOSTIC TEST   ")
+        println("      STARTING AUTOMATED SERVER DIAGNOSTIC TEST (Bust Cache) ")
         println("==================================================")
 
         val results = mutableListOf<TestRecord>()
@@ -37,15 +37,15 @@ class DiagnosticServerAutomationTest {
         })
 
         // 2. HTTPS Domain Reachable
-        results.add(runTest(2, "HTTPS Domain Reachable (chandabook.com)") {
+        results.add(runTest(2, "HTTPS Domain Reachable (api.chandabook.com)") {
             var ipInfo = ""
             try {
-                val addresses = java.net.InetAddress.getAllByName("chandabook.com")
+                val addresses = java.net.InetAddress.getAllByName("api.chandabook.com")
                 ipInfo = " [DNS IPs: " + addresses.joinToString { it.hostAddress } + "]"
             } catch (e: Exception) {
                 ipInfo = " [DNS failed: ${e.message}]"
             }
-            val request = Request.Builder().url("https://chandabook.com/").get().build()
+            val request = Request.Builder().url("https://api.chandabook.com/").get().build()
             okHttpClient.newCall(request).execute().use { response ->
                 TestResultData(true, response.code, response.body?.string()?.take(150) + ipInfo)
             }
@@ -61,7 +61,7 @@ class DiagnosticServerAutomationTest {
 
         // 4. API Base Endpoint (HTTPS)
         results.add(runTest(4, "API Base Endpoint (HTTPS)") {
-            val request = Request.Builder().url("https://chandabook.com/api/").get().build()
+            val request = Request.Builder().url("https://api.chandabook.com/api/").get().build()
             okHttpClient.newCall(request).execute().use { response ->
                 val isPass = response.code == 200 || response.code == 404
                 TestResultData(isPass, response.code, response.body?.string()?.take(150))
@@ -179,11 +179,11 @@ class DiagnosticServerAutomationTest {
         })
 
         // 12. SSL Certificate Check
-        results.add(runTest(12, "SSL Certificate Check (chandabook.com)") {
-            val url = java.net.URL("https://chandabook.com")
+        results.add(runTest(12, "SSL Certificate Check (api.chandabook.com)") {
+            val url = java.net.URL("https://api.chandabook.com")
             val conn = url.openConnection() as javax.net.ssl.HttpsURLConnection
-            conn.connectTimeout = 5000
-            conn.readTimeout = 5000
+            conn.connectTimeout = 4000
+            conn.readTimeout = 4000
             conn.connect()
             val certs = conn.serverCertificates
             val pass = certs.isNotEmpty()
@@ -233,10 +233,10 @@ class DiagnosticServerAutomationTest {
         val t8 = results.find { it.num == 8 }
 
         if (t2?.pass == false && t3?.pass == false) {
-            return "❌ SERVER REACHABILITY FAILURE: Both HTTPS (chandabook.com) and Direct IP (129.159.23.12:3000) are unreachable. The server machine is either offline or the firewall rules blocked port 3000."
+            return "❌ SERVER REACHABILITY FAILURE: Both HTTPS (api.chandabook.com) and Direct IP (129.159.23.12:3000) are unreachable. The server machine is either offline or the firewall rules blocked port 3000."
         }
         if (t2?.pass == true && t4?.code == 404) {
-            return "⚠️ ROUTING MISMATCH: The domain chandabook.com is active, but the /api/ base endpoint returned 404. It means your Nginx router does not translate /api/ correctly to your Node.js application, or your Node.js application is not listening on /api/ endpoints (routes are registered without '/api' prefix like /users, /auth, /organizations)."
+            return "⚠️ ROUTING MISMATCH: The domain api.chandabook.com is active, but the /api/ base endpoint returned 404. It means your Nginx router does not translate /api/ correctly to your Node.js application, or your Node.js application is not listening on /api/ endpoints (routes are registered without '/api' prefix like /users, /auth, /organizations)."
         }
         if (t6?.code == 404 && t7?.code == 404 && t8?.code == 404) {
             return "❌ ENDPOINT NOT YET IMPLEMENTED IN SERVER: Your GitHub Express server (routes/auth.js) only defines a single POST /login route. It is completely missing auth/register/email, auth/google, auth/login/email, and other routes requested by the Android app."
