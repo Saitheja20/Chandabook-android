@@ -426,7 +426,7 @@ fun LoginRegistrationScreen(
                                 val credentialManager = androidx.credentials.CredentialManager.create(context)
                                 val googleIdOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
                                     .setFilterByAuthorizedAccounts(false)
-                                    .setServerClientId("chandabook-auth-google-id")
+                                    .setServerClientId("4302415544-pvbuklsv06163s9hrhumjl73gai0jl2g.apps.googleusercontent.com")
                                     .setAutoSelectEnabled(false)
                                     .build()
 
@@ -442,14 +442,15 @@ fun LoginRegistrationScreen(
                                 val credential = result.credential
                                 if (credential is com.google.android.libraries.identity.googleid.GoogleIdTokenCredential) {
                                     val idToken = credential.idToken
+                                    val logLength = if (idToken.length >= 20) 20 else idToken.length
+                                    android.util.Log.d("GoogleSignIn", "Google login token received: ${idToken.take(logLength)}...")
                                     viewModel.selectGoogleLogin(idToken, onLoginSuccess)
                                 } else {
-                                    viewModel.showError("Unexpected credential type returned")
+                                    viewModel.showError("Unexpected credential type: ${credential::class.java.simpleName}")
                                 }
                             } catch (e: Exception) {
-                                android.util.Log.e("GoogleSignIn", "Credential manager fallback trigger: ${e.message}")
-                                // Safe fallback for local developer emulators and streaming previews without play configuration
-                                viewModel.selectGoogleLogin("mock_google_token_9001", onLoginSuccess)
+                                android.util.Log.e("GoogleSignIn", "Credential manager sign-in error: ${e.message}", e)
+                                viewModel.showError("Google Sign-In failed: ${e.localizedMessage ?: e.javaClass.simpleName}")
                             }
                         }
                     },

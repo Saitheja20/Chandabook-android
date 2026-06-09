@@ -101,7 +101,7 @@ class DiagnosticServerAutomationTest {
         // 7. Auth Endpoint (Google)
         results.add(runTest(7, "Auth Endpoint Exists (Google)") {
             val jsonMediaType = "application/json; charset=utf-8".toMediaType()
-            val payload = """{"idToken": "diagnostic_test_token"}"""
+            val payload = """{"idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjIifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJzdWIiOiIxMjM0NTY3OTAxIn0.dummy_signature_for_format_validation"}"""
             val request = Request.Builder()
                 .url("http://129.159.23.12:3000/api/auth/google")
                 .post(payload.toRequestBody(jsonMediaType))

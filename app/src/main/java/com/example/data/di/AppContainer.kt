@@ -60,10 +60,14 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                 // Read JWT Token from SessionManager and append to headers
                 val jwtToken = sessionManager.token
                 if (!jwtToken.isNullOrEmpty()) {
+                    android.util.Log.d("AppContainer", "OkHttp Interceptor: Attaching Authorization header (Bearer token prefix, length=${jwtToken.length})")
                     requestBuilder.header("Authorization", "Bearer $jwtToken")
+                } else {
+                    android.util.Log.d("AppContainer", "OkHttp Interceptor: No token found in SessionManager, requesting anonymously/guest context")
                 }
                 
                 val request = requestBuilder.build()
+                android.util.Log.d("AppContainer", "OkHttp Request: [${request.method}] -> ${request.url}")
                 var response: okhttp3.Response? = null
                 var primaryException: Exception? = null
                 
@@ -71,13 +75,21 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                     response = chain.proceed(request)
                 } catch (e: Exception) {
                     primaryException = e
+                    android.util.Log.e("AppContainer", "OkHttp Request Failed with exception for ${request.url}", e)
                 }
                 
                 // Check if primary call succeeded and we got a 401
                 if (response != null) {
+                    android.util.Log.d("AppContainer", "OkHttp Response: Code=${response.code} for URL=${request.url}")
                     if (response.code == 401) {
-                        sessionManager.clear()
-                        sessionManager.onSessionExpired?.invoke()
+                        android.util.Log.w("AppContainer", "OkHttp Response 401: Unauthorized response detected!")
+                        if (!jwtToken.isNullOrEmpty()) {
+                            android.util.Log.e("AppContainer", "OkHttp 401: Active JWT token rejected by backend. Clearing session & triggering expiry handler.")
+                            sessionManager.clear()
+                            sessionManager.onSessionExpired?.invoke()
+                        } else {
+                            android.util.Log.d("AppContainer", "OkHttp 401: Received 401 but no JWT was supplied anyway. Skipping session clearance behavior.")
+                        }
                     }
                     response
                 } else {
@@ -103,14 +115,21 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                         val fallbackRequest = request.newBuilder()
                             .url(fallbackUrl)
                             .build()
+                        android.util.Log.w("AppContainer", "OkHttp Fallback: Primary failed. Retrying with fallback IP: $fallbackUrl (retaining attached Auth headers)")
                         try {
                             val fallbackResponse = chain.proceed(fallbackRequest)
+                            android.util.Log.d("AppContainer", "OkHttp Fallback Response: Code=${fallbackResponse.code}")
                             if (fallbackResponse.code == 401) {
-                                sessionManager.clear()
-                                sessionManager.onSessionExpired?.invoke()
+                                android.util.Log.w("AppContainer", "OkHttp Fallback Response 401: Unauthorized response detected!")
+                                if (!jwtToken.isNullOrEmpty()) {
+                                    android.util.Log.e("AppContainer", "OkHttp Fallback 401: Active JWT token rejected by fallback. Clearing session.")
+                                    sessionManager.clear()
+                                    sessionManager.onSessionExpired?.invoke()
+                                }
                             }
                             fallbackResponse
                         } catch (fallbackEx: Exception) {
+                            android.util.Log.e("AppContainer", "OkHttp Fallback Failed", fallbackEx)
                             throw primaryException ?: fallbackEx
                         }
                     } else {

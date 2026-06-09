@@ -35,6 +35,23 @@ class SessionManager(context: Context) {
 
     init {
         initKeystore()
+        try {
+            val allEntries = prefs.all
+            android.util.Log.d("SessionManager", "--- STARTUP PREFERENCES DUMP ---")
+            for ((key, value) in allEntries) {
+                val strVal = value?.toString() ?: "null"
+                val loggedVal = if (strVal.startsWith("ey") || strVal.startsWith("{")) {
+                    "Plaintext [length=${strVal.length}, prefix=${strVal.take(5)}...]"
+                } else {
+                    "Encrypted/Other [length=${strVal.length}, type=${value?.javaClass?.simpleName}]"
+                }
+                android.util.Log.d("SessionManager", "Key: $key => Value: $loggedVal")
+            }
+            android.util.Log.d("SessionManager", "isLoggedIn check on startup: ${isLoggedIn()}")
+            android.util.Log.d("SessionManager", "----------------------------------")
+        } catch (e: Exception) {
+            android.util.Log.e("SessionManager", "Failed to dump preferences on startup", e)
+        }
     }
 
     private fun initKeystore() {
@@ -98,32 +115,76 @@ class SessionManager(context: Context) {
 
     var token: String?
         get() {
-            val encrypted = prefs.getString(KEY_JWT_TOKEN, null) ?: return null
-            return decrypt(encrypted).ifEmpty { null }
+            val savedValue = prefs.getString(KEY_JWT_TOKEN, null) ?: return null
+            if (savedValue.startsWith("ey") || savedValue.contains(".")) {
+                android.util.Log.d("SessionManager", "Token Loaded: Plaintext JWT successfully retrieved (length=${savedValue.length})")
+                return savedValue
+            }
+            // If it doesn't look like plaintext, attempt to decrypt it (migration / backwards compatibility)
+            val decrypted = decrypt(savedValue)
+            if (decrypted.startsWith("ey") || decrypted.contains(".")) {
+                android.util.Log.d("SessionManager", "Token Loaded: Decrypted legacy JWT successfully retrieved (length=${decrypted.length})")
+                return decrypted
+            }
+            // Check raw backup key
+            val rawBackup = prefs.getString("auth_token", null)
+            if (rawBackup != null && (rawBackup.startsWith("ey") || rawBackup.contains("."))) {
+                android.util.Log.d("SessionManager", "Token Loaded: Retrieved from backup auth_token successfully (length=${rawBackup.length})")
+                return rawBackup
+            }
+            // Broad fallback for customized tokens: if we have a non-empty string with length > 8, return it directly
+            if (savedValue.length > 8) {
+                android.util.Log.w("SessionManager", "Token Loaded: Broad fallback returning raw stored value (length=${savedValue.length})")
+                return savedValue
+            }
+            android.util.Log.e("SessionManager", "Token Loaded: Failed to resolve a valid JWT token prefix from stored data")
+            return null
         }
         set(value) {
             if (value != null) {
-                prefs.edit().putString(KEY_JWT_TOKEN, encrypt(value)).apply()
+                android.util.Log.d("SessionManager", "Token Saved: Persisted successfully (length=${value.length})")
+                prefs.edit()
+                    .putString(KEY_JWT_TOKEN, value)
+                    .putString("auth_token", value)
+                    .apply()
             } else {
-                prefs.edit().remove(KEY_JWT_TOKEN).apply()
+                android.util.Log.d("SessionManager", "Token Saved: Cleared")
+                prefs.edit()
+                    .remove(KEY_JWT_TOKEN)
+                    .remove("auth_token")
+                    .apply()
             }
         }
 
     var user: User?
         get() {
-            val encrypted = prefs.getString(KEY_USER_DATA, null) ?: return null
-            val json = decrypt(encrypted)
-            return try {
-                userAdapter.fromJson(json)
-            } catch (e: Exception) {
-                null
+            val savedValue = prefs.getString(KEY_USER_DATA, null) ?: return null
+            if (savedValue.startsWith("{")) {
+                return try {
+                    userAdapter.fromJson(savedValue)
+                } catch (e: Exception) {
+                    android.util.Log.e("SessionManager", "User Loaded: Failed to parse plain user json: ${e.message}")
+                    null
+                }
             }
+            val decrypted = decrypt(savedValue)
+            if (decrypted.startsWith("{")) {
+                return try {
+                    userAdapter.fromJson(decrypted)
+                } catch (e: Exception) {
+                    android.util.Log.e("SessionManager", "User Loaded: Failed to parse legacy decrypted user json: ${e.message}")
+                    null
+                }
+            }
+            return null
         }
         set(value) {
             if (value != null) {
                 val json = userAdapter.toJson(value)
-                prefs.edit().putString(KEY_USER_DATA, encrypt(json)).apply()
+                android.util.Log.d("SessionManager", "User Saved: Persisted successfully")
+                prefs.edit().putString(KEY_USER_DATA, json).apply()
             } else {
+                android.util.Log.d("SessionManager", "User Saved: Cleared")
                 prefs.edit().remove(KEY_USER_DATA).apply()
             }
         }
