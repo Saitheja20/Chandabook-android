@@ -86,7 +86,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                         val sentToken = request.header("Authorization")
                             ?.removePrefix("Bearer ")?.trim() ?: ""
                         val isAuthRequest = request.url.encodedPath.contains("/api/auth/")
-                        val isRealToken = sentToken.startsWith("ey")
+                        val isRealToken = sentToken.startsWith("ey") && !sentToken.contains("demo") && !sentToken.contains("signature")
                         val isApiRequest = request.url.encodedPath.contains("/api/")
 
                         android.util.Log.w("AppContainer", "OkHttp Response 401: Unauthorized response! sentTokenLength=${sentToken.length}, isRealToken=$isRealToken, isAuthRequest=$isAuthRequest, isApiRequest=$isApiRequest")
@@ -132,7 +132,7 @@ class AppContainerImpl(private val context: Context) : AppContainer {
                                 val sentToken = fallbackRequest.header("Authorization")
                                     ?.removePrefix("Bearer ")?.trim() ?: ""
                                 val isAuthRequest = fallbackRequest.url.encodedPath.contains("/api/auth/")
-                                val isRealToken = sentToken.startsWith("ey")
+                                val isRealToken = sentToken.startsWith("ey") && !sentToken.contains("demo") && !sentToken.contains("signature")
                                 val isApiRequest = fallbackRequest.url.encodedPath.contains("/api/")
 
                                 android.util.Log.w("AppContainer", "OkHttp Fallback Response 401: Unauthorized! sentTokenLength=${sentToken.length}, isRealToken=$isRealToken, isAuthRequest=$isAuthRequest, isApiRequest=$isApiRequest")

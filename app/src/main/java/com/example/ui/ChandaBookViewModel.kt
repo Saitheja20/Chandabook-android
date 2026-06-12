@@ -31,6 +31,58 @@ class ChandaBookViewModel(
     // --- SYSTEM & COROUTINE JOBS ---
     private var timerJob: Job? = null
 
+    // --- GEMINI VOICE AI COMPONENT ---
+    private val geminiVoiceService = com.example.data.api.GeminiVoiceAiService()
+    private var tts: android.speech.tts.TextToSpeech? = null
+
+    val aiSpeechActive = MutableStateFlow(false)
+    val aiSpeechStatus = MutableStateFlow("Hold button or tap the mic to speak...")
+    val aiRecognizedText = MutableStateFlow("")
+    val extractedExpense = MutableStateFlow<ExtractedExpense?>(null)
+
+    data class ExtractedExpense(
+        val title: String,
+        val amount: Double,
+        val category: String,
+        val paymentMethod: String,
+        val notes: String?
+    )
+
+    fun speak(text: String) {
+        if (!isAiEnabled.value) return
+        try {
+            tts?.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, null)
+        } catch (e: Exception) {
+            android.util.Log.e("ChandaBookViewModel", "TTS speak failed", e)
+        }
+    }
+
+    fun processVoiceCommand(text: String) {
+        if (text.isBlank()) return
+        aiRecognizedText.value = text
+        aiSpeechStatus.value = "Analyzing speech with Gemini..."
+        _isLoading.value = true
+
+        geminiVoiceService.extractExpenseFromSpeech(
+            speechText = text,
+            onSuccess = { title, amount, category, paymentMethod, notes ->
+                _isLoading.value = false
+                extractedExpense.value = ExtractedExpense(title, amount, category, paymentMethod, notes)
+                aiSpeechStatus.value = "Expense analyzed and extracted!"
+                speak("I've analyzed that. Sounded like an expense for $title costing $amount. Please verify and save.")
+            },
+            onFailure = { error ->
+                _isLoading.value = false
+                aiSpeechStatus.value = "Could not parse: $error"
+                speak("Sorry, I couldn't understand that transaction. Please try again or type.")
+            }
+        )
+    }
+
+    fun clearExtractedExpense() {
+        extractedExpense.value = null
+    }
+
     // --- GLOBAL STATE ---
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
@@ -61,6 +113,15 @@ class ChandaBookViewModel(
 
     private val _isLoggedIn = MutableStateFlow(authRepo.isLoggedIn())
     val isLoggedIn = _isLoggedIn.asStateFlow()
+
+    // --- AI TOGGLE PREFERENCE ---
+    private val _isAiEnabled = MutableStateFlow(authRepo.isAiEnabled())
+    val isAiEnabled = _isAiEnabled.asStateFlow()
+
+    fun toggleAiEnabled(enabled: Boolean) {
+        authRepo.setAiEnabled(enabled)
+        _isAiEnabled.value = enabled
+    }
 
     val otpTimer = MutableStateFlow(0) // 60s countdown
     val otpSent = MutableStateFlow(false)
@@ -270,10 +331,24 @@ class ChandaBookViewModel(
 
     // --- INITIALIZATION ---
     init {
+        try {
+            tts = android.speech.tts.TextToSpeech(getApplication()) { status ->
+                if (status == android.speech.tts.TextToSpeech.SUCCESS) {
+                    tts?.language = Locale.getDefault()
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ChandaBookViewModel", "TTS init failed", e)
+        }
+
         authRepo.registerSessionExpiredCallback {
             viewModelScope.launch {
                 // Only show "Session expired" if user
                 // WAS actively using the app, not on startup
+                if (authRepo.getLocalUser()?.email == "test@ai.com") {
+                    android.util.Log.d("DEMO_AUTH", "Bypassing session expiration callback in demo mode")
+                    return@launch
+                }
                 if (_isLoggedIn.value) {
                     logoutUser { }
                     showError("Session expired. Please log in again.")
@@ -774,6 +849,16 @@ class ChandaBookViewModel(
             showError("Server error. Committee data integrity intact, try re-syncing.")
         } else {
             showError("Working offline mode. Displaying cached books.")
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        try {
+            tts?.stop()
+            tts?.shutdown()
+        } catch (e: Exception) {
+            // ignore
         }
     }
 }

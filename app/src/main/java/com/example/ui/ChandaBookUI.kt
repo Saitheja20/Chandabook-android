@@ -565,6 +565,27 @@ fun LoginRegistrationScreen(
                     )
                 }
 
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF2B01E).copy(alpha = 0.15f)),
+                    border = BorderStroke(1.dp, Color(0xFFF2B01E).copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp).testTag("demo_mode_tip")
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("💡", fontSize = 16.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("UI Developer Demo Mode", color = Color(0xFFF2B01E), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "For UI testing, enter Email test@ai.com & OTP 123456 to instantly login without any internet or backend requirement.",
+                            color = Color(0xFFBFD2DC),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Row(
@@ -946,13 +967,33 @@ fun DashboardScreen(
                                 fontFamily = FontFamily.Serif,
                                 letterSpacing = (-0.5).sp
                             )
-                            Text(
-                                "DIGITAL LEDGER",
-                                color = Color(0xFFFFCCBC),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 1.5.sp
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    "DIGITAL LEDGER",
+                                    color = Color(0xFFFFCCBC),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 1.5.sp
+                                )
+                                if (currentUser?.email == "test@ai.com") {
+                                    Surface(
+                                        color = Color(0xFFF2B01E),
+                                        shape = RoundedCornerShape(4.dp),
+                                        modifier = Modifier.testTag("demo_mode_badge")
+                                    ) {
+                                        Text(
+                                            text = "DEMO MODE",
+                                            color = Color.Black,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -2134,6 +2175,8 @@ fun AddExpenseScreen(
     var paymentMethod by remember { mutableStateOf("cash") }
     var notes by remember { mutableStateOf("") }
 
+    var showVoiceAssistant by remember { mutableStateOf(false) }
+
     val categories = listOf("decoration", "pooja_items", "sound", "prasad", "printing", "transport", "other")
     val payments = listOf("cash", "upi", "bank_transfer", "cheque", "online")
 
@@ -2157,6 +2200,53 @@ fun AddExpenseScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            val isAiEnabledState by viewModel.isAiEnabled.collectAsState()
+            if (isAiEnabledState) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showVoiceAssistant = true }
+                        .testTag("gemini_voice_assist_banner"),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🎙️", fontSize = 24.sp)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Gemini Voice Assistant", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text("Dictate this entire invoice using your voice.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                        }
+                        Button(
+                            onClick = { showVoiceAssistant = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier.height(32.dp).testTag("dictate_trigger_button")
+                        ) {
+                            Text("Dictate", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            if (showVoiceAssistant) {
+                GeminiVoiceAssistantDialog(
+                    viewModel = viewModel,
+                    onDismissRequest = { showVoiceAssistant = false },
+                    onParsed = { parsedTitle, parsedAmount, parsedCategory, parsedPayment, parsedNotes ->
+                        title = parsedTitle
+                        amountStr = if (parsedAmount > 0.0) parsedAmount.toInt().toString() else ""
+                        category = parsedCategory
+                        paymentMethod = parsedPayment
+                        notes = parsedNotes ?: ""
+                        showVoiceAssistant = false
+                    }
+                )
+            }
+
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
@@ -2299,12 +2389,58 @@ fun ExpensesListScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToAdd,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
+            val isAiEnabledState by viewModel.isAiEnabled.collectAsState()
+            var showVoiceAssistant by remember { mutableStateOf(false) }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Add, "Add Expense")
+                if (isAiEnabledState) {
+                    FloatingActionButton(
+                        onClick = { showVoiceAssistant = true },
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = Color.White,
+                        modifier = Modifier.testTag("expenses_list_voice_fab")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🎙️", fontSize = 20.sp)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Gemini Talk", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = onNavigateToAdd,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    modifier = Modifier.testTag("add_expense_fab")
+                ) {
+                    Icon(Icons.Default.Add, "Add Expense")
+                }
+            }
+
+            if (showVoiceAssistant) {
+                GeminiVoiceAssistantDialog(
+                    viewModel = viewModel,
+                    onDismissRequest = { showVoiceAssistant = false },
+                    onParsed = { parsedTitle, parsedAmount, parsedCategory, parsedPayment, parsedNotes ->
+                        viewModel.addExpense(
+                            title = parsedTitle,
+                            amount = parsedAmount,
+                            category = parsedCategory,
+                            paymentMethod = parsedPayment,
+                            notes = parsedNotes,
+                            billImage = "bill_placeholder_uri_simulated"
+                        ) {
+                            showVoiceAssistant = false
+                        }
+                    }
+                )
             }
         }
     ) { p ->
@@ -2721,6 +2857,36 @@ fun SettingsScreen(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("➕ Create New Festival Committee Or Mandap", fontWeight = FontWeight.Bold)
+            }
+
+            // Gemini AI Settings Card
+            val isAiEnabledState by viewModel.isAiEnabled.collectAsState()
+            Text("GEMINI INTELLECTUAL INTELLIGENCE", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.Gray)
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("gemini_ai_settings_card"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Text("✨", fontSize = 24.sp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Enable Intelligent Gemini AI", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text("Unlock automated Voice-to-Ledger tracking & real-time talkback.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                            }
+                        }
+                        Switch(
+                            checked = isAiEnabledState,
+                            onCheckedChange = { viewModel.toggleAiEnabled(it) },
+                            modifier = Modifier.testTag("gemini_ai_switch")
+                        )
+                    }
+                }
             }
 
             // About section
@@ -3486,3 +3652,238 @@ fun GuestDashboardScreen(
         }
     }
 }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 13. GEMINI INTELLIGENT VOICE DIALOG
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+@Composable
+fun GeminiVoiceAssistantDialog(
+    viewModel: ChandaBookViewModel,
+    onDismissRequest: () -> Unit,
+    onParsed: (String, Double, String, String, String?) -> Unit
+) {
+    val status by viewModel.aiSpeechStatus.collectAsState()
+    val recognizedText by viewModel.aiRecognizedText.collectAsState()
+    val extracted by viewModel.extractedExpense.collectAsState()
+    val context = LocalContext.current
+
+    var isListeningState by remember { mutableStateOf(false) }
+    var speechRecognizer: android.speech.SpeechRecognizer? by remember { mutableStateOf(null) }
+
+    // Manual text input fallback option
+    var textInput by remember { mutableStateOf("") }
+
+    val startListeningAction = {
+        try {
+            isListeningState = true
+            viewModel.aiSpeechStatus.value = "Listening to your voice..."
+            val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Tell Gemini your expense details...")
+            }
+
+            speechRecognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(context).apply {
+                setRecognitionListener(object : android.speech.RecognitionListener {
+                    override fun onReadyForSpeech(params: android.os.Bundle?) {}
+                    override fun onBeginningOfSpeech() {
+                        viewModel.aiSpeechStatus.value = "Recording..."
+                    }
+                    override fun onRmsChanged(rmsdB: Float) {}
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+                    override fun onEndOfSpeech() {
+                        isListeningState = false
+                        viewModel.aiSpeechStatus.value = "Analyzing audio..."
+                    }
+                    override fun onError(error: Int) {
+                        isListeningState = false
+                        val errorText = when (error) {
+                            android.speech.SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
+                            android.speech.SpeechRecognizer.ERROR_CLIENT -> "Client error"
+                            android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "No mic permissions"
+                            android.speech.SpeechRecognizer.ERROR_NETWORK -> "Network issue"
+                            android.speech.SpeechRecognizer.ERROR_NO_MATCH -> "No voice detected"
+                            android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
+                            else -> "Mic interface unavailable on this build"
+                        }
+                        viewModel.aiSpeechStatus.value = "Voice recognition failed: $errorText. Please type your phrase."
+                    }
+                    override fun onResults(results: android.os.Bundle?) {
+                        val matches = results?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)
+                        if (!matches.isNullOrEmpty()) {
+                            val transcribed = matches[0]
+                            viewModel.processVoiceCommand(transcribed)
+                        } else {
+                            viewModel.aiSpeechStatus.value = "Could not hear transcription. Please type below."
+                        }
+                    }
+                    override fun onPartialResults(partialResults: android.os.Bundle?) {}
+                    override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
+                })
+                startListening(intent)
+            }
+        } catch (e: Exception) {
+            isListeningState = false
+            viewModel.aiSpeechStatus.value = "Mic/STT service inactive. Type your phrase below!"
+        }
+    }
+
+    val stopListeningAction = {
+        try {
+            isListeningState = false
+            speechRecognizer?.stopListening()
+            speechRecognizer?.destroy()
+            speechRecognizer = null
+        } catch(e: Exception) {}
+    }
+
+    // Permission launcher
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            startListeningAction()
+        } else {
+            viewModel.aiSpeechStatus.value = "Voice audio access denied. Please allow it in App Settings."
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = {
+            stopListeningAction()
+            viewModel.clearExtractedExpense()
+            onDismissRequest()
+        },
+        title = {
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("🎙️ Gemini Intelligent Voice Assistant", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Speak things like: \"Paid 1200 rupees for pooja flowers from cash\" or \"Transferred 6000 sound rental via upi\"",
+                    fontSize = 11.sp,
+                    color = Color.Gray
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Status:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                        Text(status, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        if (recognizedText.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Speech Transcript:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.Gray)
+                            Text("\"$recognizedText\"", fontSize = 13.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                        }
+                    }
+                }
+
+                if (isListeningState) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(30.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("🔊 Speaking Mode...", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                // Fallback direct text input
+                OutlinedTextField(
+                    value = textInput,
+                    onValueChange = { textInput = it },
+                    label = { Text("Alternatively, type here...") },
+                    placeholder = { Text("e.g., Spent 500 upi for prasad sweets") },
+                    singleLine = true,
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            if (textInput.isNotBlank()) {
+                                viewModel.processVoiceCommand(textInput)
+                            }
+                        }) {
+                            Icon(Icons.Default.Send, "Process Phrase Input")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("ai_manual_text_input")
+                )
+
+                extracted?.let { data ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                        border = BorderStroke(1.dp, Color(0xFF4CAF50))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("✨ GEMINI EXTRACTED PAYLOAD", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF2E7D32))
+                            Text("Title: ${data.title}", fontWeight = FontWeight.Bold)
+                            Text("Amount: ₹${data.amount}")
+                            Text("Category: ${data.category.replace("_", " ").uppercase()}")
+                            Text("Payment: ${data.paymentMethod.replace("_", " ").uppercase()}")
+                            data.notes?.let { Text("Notes: $it", fontSize = 12.sp, color = Color.DarkGray) }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                extracted?.let { data ->
+                    Button(
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                        onClick = {
+                            onParsed(data.title, data.amount, data.category, data.paymentMethod, data.notes)
+                            viewModel.clearExtractedExpense()
+                            stopListeningAction()
+                            onDismissRequest()
+                        },
+                        modifier = Modifier.testTag("ai_confirm_save_button")
+                    ) {
+                        Text("Confirm & Apply")
+                    }
+                }
+
+                if (!isListeningState) {
+                    FilledIconButton(
+                        onClick = {
+                            val permission = android.Manifest.permission.RECORD_AUDIO
+                            val checkSelf = androidx.core.content.ContextCompat.checkSelfPermission(context, permission)
+                            if (checkSelf == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                startListeningAction()
+                            } else {
+                                permissionLauncher.launch(permission)
+                            }
+                        },
+                        modifier = Modifier.testTag("ai_mic_start_button")
+                    ) {
+                        Text("🎙️", fontSize = 18.sp)
+                    }
+                } else {
+                    IconButton(
+                        onClick = { stopListeningAction() },
+                        modifier = Modifier.testTag("ai_mic_stop_button")
+                    ) {
+                        Text("❌", fontSize = 18.sp)
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    stopListeningAction()
+                    viewModel.clearExtractedExpense()
+                    onDismissRequest()
+                }
+            ) {
+                Text("Close")
+            }
+        }
+    )
+}
+

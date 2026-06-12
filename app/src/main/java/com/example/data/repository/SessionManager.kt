@@ -85,6 +85,10 @@ class SessionManager(private val context: Context) {
             prefs.edit().putString(KEY_CURRENT_ORG_ID, value).apply()
         }
 
+    var isAiEnabled: Boolean
+        get() = prefs.getBoolean("ai_enabled", true)
+        set(value) = prefs.edit().putBoolean("ai_enabled", value).apply()
+
     fun getUserId(): String? = prefs.getString("user_id", null)
     fun getUserName(): String? = prefs.getString("user_name", null)
     fun getUserEmail(): String? = prefs.getString("user_email", null)

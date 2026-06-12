@@ -23,6 +23,20 @@ class OrgRepository(
     }
 
     suspend fun fetchMyOrganizations(): Result<List<Organization>> {
+        if (sessionManager.getUserEmail() == "test@ai.com" || sessionManager.token == "eyJkZW1vIjoiY2hhbmRhYm9vayJ9.demo.signature") {
+            android.util.Log.d("DEMO_AUTH", "Using offline demo fetchMyOrganizations")
+            val demoOrg = Organization(
+                id = "demo-org-001",
+                name = "AI Studio Demo Committee",
+                organizationCode = "DEMO01",
+                createdBy = "demo-user-001",
+                createdByName = "AI Studio Demo",
+                createdAt = "2026-06-10T00:00:00Z",
+                updatedAt = "2026-06-10T00:00:00Z"
+            )
+            dao.insertOrganization(demoOrg)
+            return Result.success(listOf(demoOrg))
+        }
         return try {
             val orgs = api.getMyOrganizations()
             // Save to database
@@ -41,6 +55,25 @@ class OrgRepository(
     }
 
     suspend fun createOrganization(name: String, description: String?): Result<Organization> {
+        if (sessionManager.getUserEmail() == "test@ai.com" || sessionManager.token == "eyJkZW1vIjoiY2hhbmRhYm9vayJ9.demo.signature") {
+            android.util.Log.d("DEMO_AUTH", "Using offline demo createOrganization")
+            val code = "DEMO" + (10..99).random()
+            val newOrg = Organization(
+                id = "org-" + java.util.UUID.randomUUID().toString().take(8),
+                name = name,
+                description = description,
+                organizationCode = code,
+                createdBy = "demo-user-001",
+                createdByName = "AI Studio Demo",
+                createdAt = "2026-06-10T00:00:00Z",
+                updatedAt = "2026-06-10T00:00:00Z"
+            )
+            dao.insertOrganization(newOrg)
+            if (sessionManager.currentOrganizationId == null) {
+                sessionManager.currentOrganizationId = newOrg.id
+            }
+            return Result.success(newOrg)
+        }
         return try {
             val newOrg = api.createOrganization(CreateOrgRequest(name, description))
             dao.insertOrganization(newOrg)
@@ -54,6 +87,19 @@ class OrgRepository(
     }
 
     suspend fun getMembers(orgId: String): Result<List<Member>> {
+        if (sessionManager.getUserEmail() == "test@ai.com" || sessionManager.token == "eyJkZW1vIjoiY2hhbmRhYm9vayJ9.demo.signature") {
+            val demoMembers = listOf(
+                Member(
+                    id = "demo-user-001",
+                    displayName = "AI Studio Demo",
+                    email = "test@ai.com",
+                    userRole = "admin",
+                    orgRole = "Admin",
+                    joinedAt = "2026-06-10T00:00:00Z"
+                )
+            )
+            return Result.success(demoMembers)
+        }
         return try {
             val members = api.getOrganizationMembers(orgId)
             Result.success(members)
@@ -63,6 +109,20 @@ class OrgRepository(
     }
 
     suspend fun getOrgDetails(orgId: String): Result<Organization> {
+        if (orgId == "demo-org-001" || sessionManager.getUserEmail() == "test@ai.com" || sessionManager.token == "eyJkZW1vIjoiY2hhbmRhYm9vayJ9.demo.signature") {
+            android.util.Log.d("DEMO_AUTH", "Using offline demo getOrgDetails")
+            val demoOrg = Organization(
+                id = "demo-org-001",
+                name = "AI Studio Demo Committee",
+                organizationCode = "DEMO01",
+                createdBy = "demo-user-001",
+                createdByName = "AI Studio Demo",
+                createdAt = "2026-06-10T00:00:00Z",
+                updatedAt = "2026-06-10T00:00:00Z"
+            )
+            dao.insertOrganization(demoOrg)
+            return Result.success(demoOrg)
+        }
         return try {
             val details = api.getOrganizationDetails(orgId)
             dao.insertOrganization(details)

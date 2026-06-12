@@ -25,6 +25,10 @@ class DonationRepository(
     }
 
     suspend fun refreshDonations(orgId: String): Result<List<Donation>> {
+        if (sessionManager.getUserEmail() == "test@ai.com" || sessionManager.token == "eyJkZW1vIjoiY2hhbmRhYm9vayJ9.demo.signature" || orgId == "demo-org-001") {
+            android.util.Log.d("DEMO_AUTH", "Using offline demo refreshDonations")
+            return Result.success(emptyList())
+        }
         return try {
             val list = api.getDonations(
                 organizationId = orgId,
@@ -97,6 +101,12 @@ class DonationRepository(
         // Optimistic save in SQLite immediately
         dao.insertDonation(newDonation)
 
+        if (sessionManager.getUserEmail() == "test@ai.com" || sessionManager.token == "eyJkZW1vIjoiY2hhbmRhYm9vayJ9.demo.signature" || orgId == "demo-org-001") {
+            android.util.Log.d("DEMO_AUTH", "Using offline demo createDonation")
+            dao.insertDonation(newDonation.copy(isSynced = true))
+            return Result.success(newDonation.copy(isSynced = true))
+        }
+
         return try {
             val created = api.createDonation(newDonation)
             // Update SQLite entry as synced
@@ -136,6 +146,28 @@ class DonationRepository(
     }
 
     suspend fun getSummaryTotals(orgId: String): Result<SummaryTotals> {
+        if (sessionManager.getUserEmail() == "test@ai.com" || sessionManager.token == "eyJkZW1vIjoiY2hhbmRhYm9vayJ9.demo.signature" || orgId == "demo-org-001") {
+            android.util.Log.d("DEMO_AUTH", "Using offline demo getSummaryTotals")
+            return Result.success(
+                SummaryTotals(
+                    totalDonations = 12,
+                    totalAmount = 78500.0,
+                    avgAmount = 6541.67,
+                    maxAmount = 25000.0,
+                    byCategory = listOf(
+                        CategoryDetail("decoration", 3, 15000.0),
+                        CategoryDetail("pooja_items", 5, 28500.0),
+                        CategoryDetail("sound", 2, 15000.0),
+                        CategoryDetail("prasad", 2, 20000.0)
+                    ),
+                    byPayment = listOf(
+                        PaymentDetail("cash", 4, 18500.0),
+                        PaymentDetail("upi", 6, 45000.0),
+                        PaymentDetail("bank_transfer", 2, 15000.0)
+                    )
+                )
+            )
+        }
         return try {
             val stats = api.getSummaryTotals(orgId, null, null, null)
             Result.success(stats)

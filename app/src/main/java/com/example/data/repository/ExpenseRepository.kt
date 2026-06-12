@@ -22,6 +22,10 @@ class ExpenseRepository(
     }
 
     suspend fun refreshExpenses(orgId: String): Result<List<Expense>> {
+        if (sessionManager.getUserEmail() == "test@ai.com" || sessionManager.token == "eyJkZW1vIjoiY2hhbmRhYm9vayJ9.demo.signature" || orgId == "demo-org-001") {
+            android.util.Log.d("DEMO_AUTH", "Using offline demo refreshExpenses")
+            return Result.success(emptyList())
+        }
         return try {
             val list = api.getExpenses(orgId, null, null, null)
             // Cache in Room
@@ -62,6 +66,12 @@ class ExpenseRepository(
 
         // Optimistic save in SQLite immediately
         dao.insertExpense(newExpense)
+
+        if (sessionManager.getUserEmail() == "test@ai.com" || sessionManager.token == "eyJkZW1vIjoiY2hhbmRhYm9vayJ9.demo.signature" || orgId == "demo-org-001") {
+            android.util.Log.d("DEMO_AUTH", "Using offline demo createExpense")
+            dao.insertExpense(newExpense.copy(isSynced = true))
+            return Result.success(newExpense.copy(isSynced = true))
+        }
 
         return try {
             val created = api.createExpense(newExpense)
