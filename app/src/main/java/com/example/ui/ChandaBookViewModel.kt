@@ -452,8 +452,13 @@ class ChandaBookViewModel(
                 
                 // Fetch orgs
                 orgRepo.fetchMyOrganizations().onSuccess { orgList ->
-                    if (orgList.isNotEmpty() && _activeOrgId.value == null) {
-                        switchOrganization(orgList.first().id)
+                    if (orgList.isNotEmpty()) {
+                        val currentActive = _activeOrgId.value
+                        if (currentActive == null || !orgList.any { it.id == currentActive }) {
+                            switchOrganization(orgList.first().id)
+                        } else {
+                            refreshActiveOrgData()
+                        }
                     }
                 }
             }.onFailure {

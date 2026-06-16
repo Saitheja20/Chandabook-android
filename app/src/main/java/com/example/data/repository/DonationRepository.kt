@@ -1,6 +1,8 @@
 package com.example.data.repository
 
 import com.example.data.api.ChandaBookApiService
+import com.example.data.api.DonationsResponse
+import com.example.data.api.SummaryTotalsResponse
 import com.example.data.local.DonationDao
 import com.example.data.model.CategoryDetail
 import com.example.data.model.Donation
@@ -30,7 +32,7 @@ class DonationRepository(
             return Result.success(emptyList())
         }
         return try {
-            val list = api.getDonations(
+            val response = api.getDonations(
                 organizationId = orgId,
                 chandaBookId = null,
                 category = null,
@@ -43,6 +45,7 @@ class DonationRepository(
                 page = 1,
                 limit = 300
             )
+            val list = response.data
             // Cache in Room
             dao.insertDonations(list.map { it.copy(isSynced = true) })
             Result.success(list)
@@ -169,7 +172,15 @@ class DonationRepository(
             )
         }
         return try {
-            val stats = api.getSummaryTotals(orgId, null, null, null)
+            val response = api.getSummaryTotals(orgId, null, null, null)
+            val stats = SummaryTotals(
+                totalDonations = response.summary?.totalDonations ?: 0,
+                totalAmount = response.summary?.totalAmount ?: 0.0,
+                avgAmount = response.summary?.avgAmount ?: 0.0,
+                maxAmount = response.summary?.maxAmount ?: 0.0,
+                byCategory = response.byCategory,
+                byPayment = response.byPayment
+            )
             Result.success(stats)
         } catch (e: Exception) {
             // Aggregate from SQLite for seamless offline reporting!

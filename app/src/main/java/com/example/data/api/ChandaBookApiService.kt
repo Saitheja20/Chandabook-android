@@ -77,7 +77,7 @@ interface ChandaBookApiService {
         @Query("search") search: String?,
         @Query("page") page: Int?,
         @Query("limit") limit: Int?
-    ): List<Donation>
+    ): DonationsResponse
 
     @POST("donations")
     suspend fun createDonation(@Body donation: Donation): Donation
@@ -97,7 +97,7 @@ interface ChandaBookApiService {
         @Query("chandaBookId") chandaBookId: String?,
         @Query("startDate") startDate: String?,
         @Query("endDate") endDate: String?
-    ): SummaryTotals
+    ): SummaryTotalsResponse
 
 
     // --- EXPENSES ---

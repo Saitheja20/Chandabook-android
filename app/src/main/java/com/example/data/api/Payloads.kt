@@ -2,6 +2,29 @@ package com.example.data.api
 
 import com.example.data.model.User
 import com.example.data.model.UserOrganization
+import com.example.data.model.Donation
+import com.example.data.model.CategoryDetail
+import com.example.data.model.PaymentDetail
+
+data class DonationsResponse(
+    val success: Boolean = true,
+    val data: List<Donation> = emptyList(),
+    val total: Int = 0
+)
+
+data class SummaryTotalsResponse(
+    val success: Boolean = true,
+    val summary: SummaryTotalsInner? = null,
+    val byCategory: List<CategoryDetail> = emptyList(),
+    val byPayment: List<PaymentDetail> = emptyList()
+)
+
+data class SummaryTotalsInner(
+    val totalDonations: Int = 0,
+    val totalAmount: Double = 0.0,
+    val avgAmount: Double = 0.0,
+    val maxAmount: Double = 0.0
+)
 
 // Auth Requests
 data class GoogleAuthRequest(
